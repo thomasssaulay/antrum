@@ -86,7 +86,7 @@ function menuUpdate(dt)
 			antHead.timer = 0
 		end
 
-		if love.keyboard.isDown('space') then
+		if love.keyboard.isDown('space') or joystick:isGamepadDown('a') then
 			titleScreenText = "Generating map..."
 			newGame()
 			gameState = 1
@@ -299,6 +299,7 @@ function newGame()
 	antList = {}
 	antsAlive = {}
 	deadEntities = {}
+
 	map = Map(0, 0)
 	base = Base(99, map.map[map.baseAnts].x, map.map[map.baseAnts].y)
 	drawNextAntTimer = 0
@@ -335,16 +336,25 @@ function newGame()
 	-- shader init
 	shaderLight = love.graphics.newShader(SHADER_LIGHT)
 end
-function resetGame() 
+
+function clearAllTimers() 
+	for _,v in ipairs(entitiesList) do
+		timer.cancel(v)
+		v.seekTimer = nil
+	end 
+	timer.clear()
+end
+
+function killAllEntities()
+	clearAllTimers()
 	for _,v in ipairs(antList) do
-		if v.state ~= "death" then 
-			v:remove()
-		end
-		v = nil
+		v:die()
+	end 
+	for _,v in ipairs(antsAlive) do
+		v:die()
 	end 
 	for _,v in ipairs(entitiesList) do
-		v:remove()
-		v = nil
+		v:die()
 	end 
 	for _,v in ipairs(itemList) do
 		if v.collider ~= nil then 
@@ -353,9 +363,9 @@ function resetGame()
 		v = nil
 	end
 	for _,v in ipairs(deadEntities) do
-		v:destroy()
 		v = nil
 	end
+
 	deadEntities = {}
 	entitiesList = {}
 	itemList = {}
@@ -373,6 +383,7 @@ end
 function pauseGame(text, subtext)
 	if not gameOver then
 		gamePaused = not gamePaused
+		pausedSubtext = nil
 	else 
 		gamePaused = true
 	end
@@ -391,7 +402,7 @@ function setGameOver(winCond)
 	if winCond then
 		pauseGame("CONGRATULATION !", "You manage to collect all the food in " .. math.floor(gameTimer) .. " seconds.")
 	else
-		pauseGame("GAME OVER !", "This seed was too hard...")
+		pauseGame("GAME OVER !", "Better luck next time...")
 	end
 end
 

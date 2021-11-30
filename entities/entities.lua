@@ -32,6 +32,8 @@ function Entities:setState(state)
 		self.anim = self.animations.action
 	elseif state == "death" then
 		self.anim = self.animations.death
+	elseif state == "stun" then
+		self.anim = self.animations.stun
 	end
 end
 
@@ -57,7 +59,7 @@ function Entities:moveToTarget(dt)
 
 	-- Spider/beetle collide with ant
 	if self.type == "spider" or self.type == "beetle" then
-		if self.collider:enter('Ant') then
+		if self.collider:enter('Ant') and self.state ~= "stun" then
 			local collision_data = self.collider:getEnterCollisionData('Ant')
 			local obj = collision_data.collider:getObject()
 			obj:die()
@@ -77,31 +79,8 @@ function Entities:moveToTarget(dt)
 				self.path = self:findPath(map.map[map.baseAnts])
 			end
 		end
-		-- Ant collide with wall while targetting item
-		-- if self.target.type == "item" and self.collider:enter('Wall') and self.isHolding == nil then
-		-- 	local collision_data = self.collider:getEnterCollisionData('Wall')
-		-- 	local obj = collision_data.collider:getObject()
-		-- 	self:setTarget(obj)
-		-- end
 	end
-	-- Ant soft collide with ant
-	-- if self.type == "ant" and self.collider:enter('Ant') then
-	-- 	local collision_data = self.collider:getEnterCollisionData('Ant')
-	-- 	local obj = collision_data.collider:getObject()
-	-- 	obj.collider:applyLinearImpulse(vx*2,vy*3)
-	-- 	self.collider:applyLinearImpulse(-vx*3,-vy*2)
-	-- end
 	
-	-- Beetle collisions
-	if self.type == "beetle" then
-		-- beetle soft collide with beetle
-		-- if self.state == "chase" and self.collider:enter('Beetle') then
-		-- 	local collision_data = self.collider:getEnterCollisionData('Beetle')
-		-- 	local obj = collision_data.collider:getObject()
-		-- 	obj.collider:applyLinearImpulse(vx*2,vy*3)
-		-- 	self.collider:applyLinearImpulse(-vx*3,-vy*2)
-		-- end
-	end
 	if self.collider.body ~= nil then self.collider:setLinearVelocity(vx, vy) end
 end
 
@@ -119,21 +98,19 @@ function Entities:setNextWanderTarget()
 		or (dir == 2 and map.map[ti + 1].unbreakable) 
 		or (dir == 3 and map.map[ti + map.nb_cells_x].unbreakable) 
 		or (dir == 4 and map.map[ti - 1].unbreakable) then 
-		--	
-		-- dir = randomExcluding(1,4,dir)
-		dir = 0
-		self.target = map.map[ti]
-	end
+			dir = 0
+			self.target = map.map[ti]
+		end
 
-	if dir == 1 then
-		self.target = map.map[ti - map.nb_cells_x]
-	elseif dir == 2 then
-		self.target = map.map[ti + 1]
-	elseif dir == 3 then
-		self.target = map.map[ti + map.nb_cells_x]
-	elseif dir == 4 then
-		self.target = map.map[ti - 1]
-	end
+		if dir == 1 then
+			self.target = map.map[ti - map.nb_cells_x]
+		elseif dir == 2 then
+			self.target = map.map[ti + 1]
+		elseif dir == 3 then
+			self.target = map.map[ti + map.nb_cells_x]
+		elseif dir == 4 then
+			self.target = map.map[ti - 1]
+		end
 
 	-- Spider avoid walls
 	if self.type == "spider" and (self.target.type == "wall" or self.target.type == "wood") then
@@ -239,9 +216,9 @@ function Entities:raycast()
 						self:setState("action_shoot")
 					else
 						self:setState("chase")
-					end
-					if self.type == "spider" then
-						cam:shake(0.05, 1)
+						if self.type == "spider" then
+							cam:shake(0.05, 1)
+						end
 					end
 				end
 			end
@@ -256,7 +233,7 @@ end
       MAIN AI FUNCTION 
 ]]--
 function Entities:AIupdate(dt)
-	if self.target ~= nil and self.state ~= "hurt" and self.state ~= "death" then
+	if self.target ~= nil and self.state ~= "hurt" and self.state ~= "death" and self.state ~= "stun" then
 		if self.state ~= "action_damageWall" or self.state ~= "action_shoot" then
 			self:moveToTarget(dt)
 		end
@@ -277,7 +254,7 @@ function Entities:AIupdate(dt)
 		end
 	end
 
-	if self.target == nil then
+	if self.target == nil and self.state ~= "stun" and self.state ~= "death" then
 		self:setState("idle")
 		if self.collider.body ~= nil then self.collider:setLinearVelocity(0,0) end
 		if self.wander_timer >= self.wanderSpeed then
@@ -403,15 +380,16 @@ function Entities:handlePlayerControls(dt)
 
 	--case holding item
 	if self.isHolding ~= nil then
-		if love.keyboard.isDown('up') or love.keyboard.isDown('left') or love.keyboard.isDown('right') then 
-			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
-			self.isHolding:unsetHolder()
-		elseif love.keyboard.isDown('down') then
-			self.isHolding.collider:setPosition(self.x,self.y + 6)
-			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
-			self.isHolding:unsetHolder()
+		if love.keyboard.isDown('up') or love.keyboard.isDown('left') or love.keyboard.isDown('right') or
+			math.abs(joystick:getAxis(4)) > GAMEPAD_THRESHOLD * 5 or joystick:getAxis(5) < -GAMEPAD_THRESHOLD * 5 then 
+				self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+				self.isHolding:unsetHolder()
+			elseif love.keyboard.isDown('down') or joystick:getAxis(5) > GAMEPAD_THRESHOLD * 5 then
+				self.isHolding.collider:setPosition(self.x,self.y + 6)
+				self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+				self.isHolding:unsetHolder()
+			end
 		end
-	end
 
 	-- stop fire
 	if dx == 0 and dy == 0 then
@@ -427,7 +405,7 @@ function Entities:handlePlayerControls(dt)
 			vy = vy * 0.7
 		end
 		if self.state ~= "action" then self.anim = self.animations.walk end
-		if self.state ~= "death" then self.collider:setLinearVelocity(vx,vy) end
+		if self.state ~= "death" and self.state ~= "death"  then self.collider:setLinearVelocity(vx,vy) end
 	end
 end
 
@@ -459,7 +437,9 @@ function Entities:die()
 		if self.collider.body ~= nil then self.collider:destroy() end
 	end
 	self.path = {}
-	if self.seekTimer ~= nil then timer.cancel(self.seekTimer) end
+	if self.seekTimer ~= nil then 
+		timer.cancel(self.seekTimer) 
+	end
 	self.seekTimer = nil
 	self.actionRate_timer = 0
 	self.fireRate_timer = 0
@@ -484,6 +464,28 @@ function Entities:die()
 			end
 		end
 	end
+end
+function Entities:stun()
+	self:setState("stun")
+	if self.seekTimer ~= nil then timer.cancel(self.seekTimer) end
+	self.seekTimer = nil
+	self.actionRate_timer = 0
+	self.fireRate_timer = 0
+	self.wander_timer = 0.0
+	self.search_timer = 0
+	self.target = nil
+	timer.after(STUN_TIME, function()
+		self:setState("wander")
+		self.hp = 12
+
+		if self.seekTimer ~= nil then
+			timer.cancel(self.seekTimer)
+		end
+		self.seekTimer = nil
+		self.seekTimer = timer.every(0.5, function() 
+			self:raycast()
+		end)
+	end)
 end
 
 --[[ 
@@ -570,51 +572,13 @@ function Entities:shootTarget()
 		local dy = math.sin(a)
 
 		a = math.deg(a)
+		cam:shake(0.1,4)
 		self:fireBullet(dx,dy,a)
 	end
 end
 function Entities:fireBullet(dx,dy,angle)
 	table.insert(self.bullets, Bullet(self.bulletID, self.x + self.width * dx,self.y + self.height * dy,dx*self.bulletSpeed,dy*self.bulletSpeed,angle,self.bulletRange, self))
 
-	cam:shake(0.1,4)
 	self.bulletID = self.bulletID + 1
 	self.fireRate_timer = 0
 end
-
-
--- OLD CODE --
--- function Entities:addLoot(data)
--- 	if(data.type == "weapon") then
--- 		self.weaponData = data
--- 		self.actionRate = data.actionRate
--- 		print("Changing weapon to ", self.weaponData.name)
--- 	end
--- end
-
--- function Entities:chase(dt, target)
--- 	local vx = (self.target.x - self.x) * self.speed * dt
--- 	local vy = (self.target.y - self.y) * self.speed * dt
-
--- 	if vx > self.speed then vx = self.speed
--- 	elseif vx < -self.speed then vx = -self.speed end
--- 	if vy > self.speed then vy = self.speed
--- 	elseif vy < -self.speed then vy = -self.speed end
--- 	print(vx , vy)
-
--- 	self.collider:setLinearVelocity(vx,vy)
--- end
--- function Entities:seekToShoot(distance)
--- 	local nearQuery = world:queryCircleArea(self.x, self.y, distance)
--- 	local result = false
--- 	for _, collider in ipairs(nearQuery) do
--- 		local obj = collider:getObject()
--- 		if obj.type == "Robot" then
--- 			self.shootTarget = obj
--- 			self:shoot(self.shootTarget)
--- 			result = true
--- 		end
--- 		if not result then
--- 			self.shootTarget = nil
--- 		end
--- 	end
--- end

@@ -11,7 +11,7 @@ function Ant:new(id, x, y)
 	self.sightDistance = 500
 	self.throwSpeed = 350
 	self.hp = 2
-	self.tileAccuracy = 20
+	self.tileAccuracy = 10
 	self.fireRate = 1
 	self.actionRate = 0.3
 	self.bulletSpeed = 300

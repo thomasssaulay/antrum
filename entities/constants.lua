@@ -40,22 +40,10 @@ NEIGHBORS_4 = {
 	MAP_SIZE_X
 }
 
-GAMEPAD_THRESHOLD = 0.1
+GAMEPAD_THRESHOLD = 0.08
+STUN_TIME = 10
 PARTICLE_LIFETIME = 5
 TIME_LIMIT = 300
-
--- 1:N , 2:E , 3:S , 4:W
--- DIRECTIONS = {
--- 	N = {ind = -map.nb_cells_x},
--- 	E = {ind = 1},
--- 	S = {ind = map.nb_cells_x},
--- 	W = {ind = -1}
--- }
-
--- TILE_DATA = {
--- 	11 = { }
--- }
-
 
 SHADER_LIGHT = [[
 #define NUM_LIGHTS 32

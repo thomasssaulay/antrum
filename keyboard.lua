@@ -24,6 +24,9 @@ function love.keypressed(key, unicode)
 			-- createEntity(itemList, Item,  currentPlayed.x+64, currentPlayed.y)
 			-- table.insert(antList, createEntity(entitiesList, Ant, currentPlayed.x+32, currentPlayed.y))
 			-- antList[#antList]:setNextWanderTarget()
+			-- killAllEntities()
+			-- newGame()
+			-- clearAllTimers()
 		end
 		if key == "r" then
 			particleSystem:stop()
@@ -43,8 +46,7 @@ function love.keypressed(key, unicode)
 			gameWidth, gameHeight = love.graphics.getDimensions()
 		end
 		if key == "space" then
-			if not gamePaused then
-				-- MAIN ACTION EVENT
+			if not gamePaused and currentPlayed.state ~= "death" then
 				local actionDone = false
 				local query = world:queryCircleArea(currentPlayed.x, currentPlayed.y, 48)
 				for _, collider in ipairs(query) do
@@ -66,8 +68,8 @@ function love.keypressed(key, unicode)
 					end
 				end
 			else
-				resetGame()
 				gameState = 0
+				clearAllTimers()
 				initMenu()
 			end
 		end
