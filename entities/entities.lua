@@ -62,7 +62,7 @@ function Entities:moveToTarget(dt)
 		if self.collider:enter('Ant') and self.state ~= "stun" then
 			local collision_data = self.collider:getEnterCollisionData('Ant')
 			local obj = collision_data.collider:getObject()
-			obj:hurt(1)
+			if obj ~= nil then obj:hurt(1) end
 			self:setState("wander")
 		end
 	end
