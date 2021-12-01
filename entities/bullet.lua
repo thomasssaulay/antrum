@@ -54,7 +54,7 @@ function Bullet:update(dt)
 	if self.owner.type == "beetle" and self.collider:enter('Ant') then
 		local collision_data = self.collider:getEnterCollisionData('Ant')
 		local entity = collision_data.collider:getObject()
-		entity:die()
+		entity:hurt(1)
 	end
 	if self.collider:enter('Bullet_beetle') then
 		local collision_data = self.collider:getEnterCollisionData('Bullet_beetle')

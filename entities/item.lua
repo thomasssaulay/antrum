@@ -59,11 +59,17 @@ function Item:setHolder(holder)
 	-- self.joint = world:addJoint('DistanceJoint', self.holder.collider, self.collider, self.holder.x, self.holder.y,self.x, self.y, false)
 	self.joint = world:addJoint('WeldJoint', self.holder.collider, self.collider, self.holder.x, self.holder.y, false)
 	-- self.joint:setLength(1)
+
+	sounds.hold:setPosition(self.x,self.y,0)
+	sounds.hold:play()
 end
 function Item:unsetHolder()
 	self.holder.isHolding = nil
 	self.holder = nil
 	world:removeJoint(self.joint)
+
+	sounds.throw:setPosition(self.x,self.y,0)
+	sounds.throw:play()
 end
 
 function Item:getCurrentTile()

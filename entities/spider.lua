@@ -9,7 +9,7 @@ function Spider:new(id, x, y)
 	-- STATS
 	self.speed = 420
 	self.sightDistance = 1500
-	self.hp = 1 -- 12
+	self.hp = 12 -- 12
 	self.tileAccuracy = 35
 	self.fireRate = 0.5
 	self.wanderSpeed = 5.0

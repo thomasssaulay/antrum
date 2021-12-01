@@ -37,6 +37,8 @@ function love.keypressed(key, unicode)
 					v.path = v:findPath(map.map[currentPlayed:getCurrentTileIndex()])
 				end
 			end
+			sounds.call:setPosition(currentPlayed.x,currentPlayed.y,0)
+			sounds.call:play()
 		end
 		if key == "escape" then
 			pauseGame("PAUSED !")

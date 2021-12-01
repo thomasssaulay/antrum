@@ -10,7 +10,7 @@ function Ant:new(id, x, y)
 	self.speed = 300.00
 	self.sightDistance = 500
 	self.throwSpeed = 350
-	self.hp = 2
+	self.hp = 3
 	self.tileAccuracy = 10
 	self.fireRate = 1
 	self.actionRate = 0.3
@@ -55,6 +55,11 @@ end
 
 
 function Ant:update(dt)
+	-- hp update
+	if self.hp <= 0 then
+		self:die()
+	end
+	
 	if self.state ~= "death" then self.x, self.y = self.collider:getPosition() end
 	if self.isPlayerControlled and self.state ~= "death" then self.handlePlayerControls(self, dt) end
 
@@ -65,10 +70,6 @@ function Ant:update(dt)
 	for i,v in ipairs(self.bullets) do
 		v:update(dt)
 		if v.toDestroy == true then table.remove(self.bullets, i) end
-	end
-	-- hp update
-	if self.hp <= 0 then
-		self:die()
 	end
 
 	self.anim:update(dt)

@@ -62,7 +62,7 @@ function Entities:moveToTarget(dt)
 		if self.collider:enter('Ant') and self.state ~= "stun" then
 			local collision_data = self.collider:getEnterCollisionData('Ant')
 			local obj = collision_data.collider:getObject()
-			obj:die()
+			obj:hurt(1)
 			self:setState("wander")
 		end
 	end
@@ -78,6 +78,12 @@ function Entities:moveToTarget(dt)
 				self:setState("chase")
 				self.path = self:findPath(map.map[map.baseAnts])
 			end
+		end
+	end
+
+	if self.target ~= nil then
+		if self.type == "spider" and self.target.type == "ant" then
+			cam:shake(0.05, 2)
 		end
 	end
 	
@@ -216,9 +222,6 @@ function Entities:raycast()
 						self:setState("action_shoot")
 					else
 						self:setState("chase")
-						if self.type == "spider" then
-							cam:shake(0.05, 1)
-						end
 					end
 				end
 			end
@@ -237,7 +240,7 @@ function Entities:AIupdate(dt)
 		if self.state ~= "action_damageWall" or self.state ~= "action_shoot" then
 			self:moveToTarget(dt)
 		end
-		if self.state == "action_damageWall" and self.actionRate_timer >= self.actionRate then 
+		if self.state == "action_damageWall" and self.actionRate_timer >= self.actionRate and self.target ~= nil then 
 			if self.target.damageAmount <= self.target.maxDamage then self.target:damage(1)
 			else 
 				self:setState("wander")
@@ -380,16 +383,25 @@ function Entities:handlePlayerControls(dt)
 
 	--case holding item
 	if self.isHolding ~= nil then
-		if love.keyboard.isDown('up') or love.keyboard.isDown('left') or love.keyboard.isDown('right') or
-			math.abs(joystick:getAxis(4)) > GAMEPAD_THRESHOLD * 5 or joystick:getAxis(5) < -GAMEPAD_THRESHOLD * 5 then 
-				self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
-				self.isHolding:unsetHolder()
-			elseif love.keyboard.isDown('down') or joystick:getAxis(5) > GAMEPAD_THRESHOLD * 5 then
-				self.isHolding.collider:setPosition(self.x,self.y + 6)
-				self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
-				self.isHolding:unsetHolder()
-			end
+		if love.keyboard.isDown('up') or love.keyboard.isDown('left') or love.keyboard.isDown('right') then 
+			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+			self.isHolding:unsetHolder()
+		elseif love.keyboard.isDown('down') then
+			self.isHolding.collider:setPosition(self.x,self.y + 6)
+			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+			self.isHolding:unsetHolder()
 		end
+	end
+	if joystick ~= nil then
+		if math.abs(joystick:getAxis(4)) > GAMEPAD_THRESHOLD * 5 or joystick:getAxis(5) < -GAMEPAD_THRESHOLD * 5 then
+			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+			self.isHolding:unsetHolder()
+		elseif joystick:getAxis(5) > GAMEPAD_THRESHOLD * 5 then
+			self.isHolding.collider:setPosition(self.x,self.y + 6)
+			self.isHolding.collider:applyLinearImpulse(dx * self.throwSpeed, dy * self.throwSpeed)
+			self.isHolding:unsetHolder()
+		end
+	end
 
 	-- stop fire
 	if dx == 0 and dy == 0 then
@@ -406,6 +418,11 @@ function Entities:handlePlayerControls(dt)
 		end
 		if self.state ~= "action" then self.anim = self.animations.walk end
 		if self.state ~= "death" and self.state ~= "death"  then self.collider:setLinearVelocity(vx,vy) end
+
+		-- AUDIO REFERENCE POSITION
+		local ax,ay = self.collider:getPosition()
+		love.audio.setPosition(ax, ay, 0);
+		-- print(ax,ay)
 	end
 end
 
@@ -446,6 +463,12 @@ function Entities:die()
 	self.wander_timer = 0.0
 	self.search_timer = 0
 
+	if self.bullets ~= nil then
+		for _,v in ipairs(self.bullets) do
+			v:destroy()
+		end
+	end
+
 	timer.after(1, function() 
 		for i,v in ipairs(entitiesList) do
 			if v.id == self.id then
@@ -464,6 +487,9 @@ function Entities:die()
 			end
 		end
 	end
+
+	sounds.die:setPosition(self.x,self.y,0)
+	sounds.die:play()
 end
 function Entities:stun()
 	self:setState("stun")
@@ -572,7 +598,6 @@ function Entities:shootTarget()
 		local dy = math.sin(a)
 
 		a = math.deg(a)
-		cam:shake(0.1,4)
 		self:fireBullet(dx,dy,a)
 	end
 end
@@ -581,4 +606,8 @@ function Entities:fireBullet(dx,dy,angle)
 
 	self.bulletID = self.bulletID + 1
 	self.fireRate_timer = 0
+
+	local snd = sounds.shoot[math.random(#sounds.shoot)]
+	snd:setPosition(self.x,self.y,0)
+	snd:play()
 end

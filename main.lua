@@ -22,6 +22,7 @@ function love.load()
 
 	gameWidth, gameHeight = love.graphics.getDimensions()
 
+	initAudio()
 	initMenu()
 end
 
@@ -58,10 +59,13 @@ function initMenu()
 	antHead = {
 		img= love.graphics.newImage("assets/gfx/antHead.png"), 
 		quad=love.graphics.newQuad(0, 0, 68, 69, 206, 69),
-		x=gameWidth/2 - 66, y=gameHeight/2 - 33, xoffset=0, timer= 0
+		x=gameWidth/2 - 33, y=titleScreen.y + 110, xoffset=0, timer= 0
 	}
+	controlsImg = love.graphics.newImage("assets/gfx/controls.png")
 	titleScreenText = "Press SPACE or A to start."
 	gameState = 0
+
+	sounds.track:play()
 end
 
 function menuUpdate(dt)
@@ -86,12 +90,21 @@ function menuUpdate(dt)
 			antHead.timer = 0
 		end
 
-		if love.keyboard.isDown('space') or joystick:isGamepadDown('a') then
+		if love.keyboard.isDown('space') then
 			titleScreenText = "Generating map..."
 			newGame()
 			gameState = 1
 			menuTimer = 0
 			titleScreenText = "Press SPACE or A to start."
+		end
+		if joystick ~= nil then
+			if joystick:isGamepadDown('a') then 
+				titleScreenText = "Generating map..."
+				newGame()
+				gameState = 1
+				menuTimer = 0
+				titleScreenText = "Press SPACE or A to start."
+			end
 		end
 
 		if love.keyboard.isDown("escape") then
@@ -101,8 +114,7 @@ function menuUpdate(dt)
 			love.window.setFullscreen( not love.window.getFullscreen( ) )
 			gameWidth, gameHeight = love.graphics.getDimensions()
 			titleScreen.x = gameWidth / 2 - 161
-			antHead.x=gameWidth / 2 - 66
-			antHead.y=gameHeight / 2 - 33
+			antHead.x=gameWidth / 2 - 33
 		end
 	else
 		menuTimer = menuTimer + dt
@@ -111,14 +123,17 @@ end
 
 function menuDraw()
 	love.graphics.setBackgroundColor(0.38, 0.29, 0.23, 1)
+	-- love.graphics.setBackgroundColor(0.85, 0.67, 0.54, 1)
 	love.graphics.setColor(0.16, 0.15, 0.12, 1)
-	love.graphics.rectangle("fill", 30, 30, gameWidth - 60, gameHeight - 60)
-	love.graphics.setColor(0.89, 0.81, 0.70, 1)
-	-- love.graphics.setFont(fontHeader)
-	-- love.graphics.printf("ANTRUM", 0, 80, gameWidth, "center")
+	love.graphics.rectangle("fill", 10, 10, gameWidth - 20, gameHeight - 20)
+	love.graphics.setColor(1, 1, 1, 1)
+	love.graphics.draw(controlsImg, gameWidth/2 - 333, gameHeight/2 - 60)
 	love.graphics.draw(titleScreen.img, titleScreen.x, titleScreen.y)
-	love.graphics.draw(antHead.img, antHead.quad, antHead.x, antHead.y, 0, 2, 2)
-	love.graphics.setFont(fontNormal)
+	love.graphics.draw(antHead.img, antHead.quad, antHead.x, antHead.y, 0, 1, 1)
+	love.graphics.setColor(0.89, 0.81, 0.70, 1)
+	love.graphics.setFont(fontHeader)
+	-- love.graphics.printf("Find food and bring it back to your base", 0, gameHeight - 100, gameWidth, "center")
+	-- love.graphics.setFont(fontHeader)
 	love.graphics.printf(titleScreenText, 0, gameHeight - 100, gameWidth, "center")
 end
 
@@ -128,7 +143,6 @@ end
 
 ]]--
 function mainGameUpdate(dt) 
-	-- if joystick ~= nil then print(joystick:getAxis(1),joystick:getAxis(2)) end
 	timer.update(dt)
 	if gameTimer > 0 then gameTimer = gameTimer - dt 
 	else setGameOver(false) end
@@ -154,7 +168,8 @@ function mainGameUpdate(dt)
 		.. " Food left : " .. #itemList .. " | Ants alive : " .. #antsAlive ..
 		"\nDead ents : " .. #deadEntities .. " Time left : " .. math.floor(gameTimer)
 	else
-		hudText = "Food left : " .. #itemList .. "\nAnts alive : " .. #antsAlive ..
+		hudText = "Food left : " .. #itemList .. "/" .. N_ITEMS ..
+		"\nAnts alive : " .. #antsAlive ..
 		"\nTime left : " .. math.floor(gameTimer)
 	end
 
@@ -195,7 +210,8 @@ function mainGameDraw()
 
 	cam:detach()
 
-	-- TODO HUD HERE
+	-- HUD
+	love.graphics.setFont(fontHeader)
 	love.graphics.print(hudText, 16, 16)
 
 	if drawNextAntTimer > 1 then
@@ -250,6 +266,40 @@ end
 	GLOBAL FUNCTIONS
 
 ]]--
+function initAudio() 
+	sounds = {}
+	sounds.dig = {}
+	sounds.shoot = {}
+	table.insert(sounds.dig, love.audio.newSource("assets/audio/dig1.wav", "static"))
+	table.insert(sounds.dig, love.audio.newSource("assets/audio/dig2.wav", "static"))
+	table.insert(sounds.dig, love.audio.newSource("assets/audio/dig3.wav", "static"))
+	table.insert(sounds.shoot, love.audio.newSource("assets/audio/shoot1.wav", "static"))
+	table.insert(sounds.shoot, love.audio.newSource("assets/audio/shoot2.wav", "static"))
+	table.insert(sounds.shoot, love.audio.newSource("assets/audio/shoot3.wav", "static"))
+	sounds.call = love.audio.newSource("assets/audio/call.wav", "static")
+	sounds.throw = love.audio.newSource("assets/audio/throw.wav", "static")
+	sounds.hold = love.audio.newSource("assets/audio/hold.wav", "static")
+	sounds.die = love.audio.newSource("assets/audio/die.wav", "static")
+	sounds.track = love.audio.newSource("assets/audio/track.wav", "stream")
+	sounds.track:setLooping(true)
+	sounds.track:setVolume(0.7)
+
+	for i,v in ipairs(sounds.dig) do
+		v:setRelative(false)
+		v:setAttenuationDistances(DISTANCE_ATTENUATION_AUDIO,99999999999999999)
+	end
+	for i,v in ipairs(sounds.shoot) do
+		v:setRelative(false)
+		v:setAttenuationDistances(DISTANCE_ATTENUATION_AUDIO,99999999999999999)
+		v:setVolume(0.75)
+	end
+	sounds.call:setRelative(false)
+	sounds.call:setAttenuationDistances(DISTANCE_ATTENUATION_AUDIO,99999999999999999)
+
+	love.audio.setVolume(0.6)
+	if not SOUND_ON then love.audio.setVolume(0.0) end
+	if not MUSIC_ON then sounds.track:setVolume(0.0) end
+end
 function createEntity(list, entityName, x, y)
 	local newEntity = entityName(id, x, y)
 	table.insert(list, newEntity)

@@ -76,6 +76,11 @@ function Tile:damage(amount)
 			self:setType("land")
 		end
 	end
+
+	local snd = sounds.dig[math.random(#sounds.dig)]
+	snd:setPosition(self.x,self.y,0)
+	snd:play()
+
 end
 
 function Tile:autotile()
