@@ -204,10 +204,12 @@ function World:collisionClear()
 end
 
 function World:collisionEventsClear()
-    local bodies = self.box2d_world:getBodies()
-    for _, body in ipairs(bodies) do
-        local collider = body:getFixtures()[1]:getUserData()
-        collider:collisionEventsClear()
+    if self.box2d_world ~= nil then
+        local bodies = self.box2d_world:getBodies()
+        for _, body in ipairs(bodies) do
+            local collider = body:getFixtures()[1]:getUserData()
+            collider:collisionEventsClear()
+        end
     end
 end
 
@@ -371,12 +373,12 @@ end
 
 local function collIf(collision_class_name1, collision_class_name2, a, b)
     if (a.collision_class == collision_class_name1 and b.collision_class == collision_class_name2) or
-     (a.collision_class == collision_class_name2 and b.collision_class == collision_class_name1) then
-         return true
-     else return false end
- end
+       (a.collision_class == collision_class_name2 and b.collision_class == collision_class_name1) then
+           return true
+       else return false end
+   end
 
- function World.collisionOnEnter(fixture_a, fixture_b, contact)
+   function World.collisionOnEnter(fixture_a, fixture_b, contact)
     local a, b = fixture_a:getUserData(), fixture_b:getUserData()
 
     if fixture_a:isSensor() and fixture_b:isSensor() then
